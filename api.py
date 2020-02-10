@@ -32,9 +32,9 @@ def getCrypto():
 #Invocamos al API para realizar la conversión indicando los valores necesarios
 def priceConv(valueQ, cryptoFR, cryptoTO):
     resp = requests.get(URL_API_CONV.format(valueQ, cryptoFR, cryptoTO, APIKEY))
+    js = resp.text
+    response = json.loads(js)
     try:
-        js = resp.text
-        response = json.loads(js)
         resp.raise_for_status()
         values = response.get('data')
         quote = values['quote']
@@ -43,12 +43,12 @@ def priceConv(valueQ, cryptoFR, cryptoTO):
         return rate
 
     except requests.exceptions.HTTPError as e:
-        js = resp.text
-        response = json.loads(js)
+        #js = resp.text
+        #response = json.loads(js)
         error = resp.status_code
         state = response['status']
         code = state['error_code']
         message = state['error_message']
-        messagebox.showerror(message="Price Conversion HTTP Error: {}".format(e), title="API Error")
-        #messagebox.showerror(message="Price Conversion HTTP Error {}: Code <{}> {}".format(error, code, message), title="API Error")
+        #messagebox.showerror(message="API Conversion HTTP Error: {}".format(e), title="API Error")
+        messagebox.showerror(message="API Conversion HTTP Error {}: Code <{}> {}".format(error, code, message), title="API Error")
         return False

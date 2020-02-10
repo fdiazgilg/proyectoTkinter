@@ -142,6 +142,8 @@ def toCrypto():
     retToCrypto = dbQuery(query)
     listretToCrypto = []
     listretToNameCryp = []
+    if isinstance(retToCrypto, dict):
+        retToCrypto = [retToCrypto]
     for item in retToCrypto:
         listretToCrypto.append(item.get('symbol'))
         listretToNameCryp.append(item.get('name'))

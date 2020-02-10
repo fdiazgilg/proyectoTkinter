@@ -8,6 +8,7 @@ import queriesDB
 _WIDTHFRAME = 900
 _HEIGHTFRAME = 610
 _pady = 15
+_padx = 80
 _textTitle = 'Verdana 8 bold'
 _textValue = 'Verdana 8'
 
@@ -25,7 +26,7 @@ class Movements(ttk.Frame):
         self.loadHeaders()
 
         #Añadimos el container para el canvas y el scroll
-        self.container = ttk.Frame(self, borderwidth=2, width=810, height=220, relief='groove')
+        self.container = ttk.Frame(self, borderwidth=0, width=810, height=220, relief='groove')
         self.container.grid(column=0, row=1, columnspan=8)
         
         #Añadimos el scrollbar
@@ -151,7 +152,7 @@ class Transaction(ttk.Frame):
         self.lblFrom.grid(row=0, column=0, padx=15, pady=_pady)
         self.lblFrom.grid_propagate(0)
 
-        self.comboFrom = ttk.Combobox(self.frameNew, justify=CENTER, textvariable=self.valCrypFrom, width=22)
+        self.comboFrom = ttk.Combobox(self.frameNew, justify=CENTER, textvariable=self.valCrypFrom, width=17)
         self.comboFrom.grid(row=0, column=1, pady=_pady)
         self.comboFrom.grid_propagate(0)
 
@@ -165,16 +166,16 @@ class Transaction(ttk.Frame):
         self.lblQfrom.grid(row=1, column=0, padx=15)
         self.lblQfrom.grid_propagate(0)
 
-        self.boxQfrom = ttk.Entry(self.frameNew, justify=RIGHT, textvariable=self.valQFrom, width=25)
+        self.boxQfrom = ttk.Entry(self.frameNew, justify=RIGHT, textvariable=self.valQFrom, width=20)
         self.boxQfrom.grid(row=1, column=1)
         self.boxQfrom.grid_propagate(0)
 
         #Creamos la etiqueta TO con su combo
-        self.lblTo = ttk.Label(self.frameNew, text='To:', font=_textTitle, width=15, anchor=E)
+        self.lblTo = ttk.Label(self.frameNew, text='To:', font=_textTitle, width=18, anchor=E)
         self.lblTo.grid(row=0, column=2, padx=15)
         self.lblTo.grid_propagate(0)
 
-        self.comboTo = ttk.Combobox(self.frameNew, justify=CENTER, textvariable=self.valCrypTo, width=22)
+        self.comboTo = ttk.Combobox(self.frameNew, justify=CENTER, textvariable=self.valCrypTo, width=17)
         self.comboTo.grid(row=0, column=3)
         self.comboTo.grid_propagate(0)
         
@@ -183,36 +184,36 @@ class Transaction(ttk.Frame):
         self.comboTo.bind('<<ComboboxSelected>>', self.selCombo)
 
         #Creamos la etiqueta Q_TO con su caja de texto
-        self.lblQto = ttk.Label(self.frameNew, text='Q:', font=_textTitle, width=15, anchor=E)
+        self.lblQto = ttk.Label(self.frameNew, text='Q:', font=_textTitle, width=18, anchor=E)
         self.lblQto.grid(row=1, column=2, padx=15)
         self.lblQto.grid_propagate(0)
     
-        self.boxQto = ttk.Entry(self.frameNew, justify=RIGHT, textvariable=self.valQTo, width=25, background='white')
+        self.boxQto = ttk.Entry(self.frameNew, justify=RIGHT, textvariable=self.valQTo, width=20, background='white')
         self.boxQto.grid(row=1, column=3)
         self.boxQto.grid_propagate(0)
 
         #Creamos la etiqueta PU con su caja de texto
-        self.lblPUto = ttk.Label(self.frameNew, text='U.P.:', font=_textTitle, width=15, anchor=E)
+        self.lblPUto = ttk.Label(self.frameNew, text='U.P.:', font=_textTitle, width=18, anchor=E)
         self.lblPUto.grid(row=2, column=2, padx=15, pady=_pady)
         self.lblPUto.grid_propagate(0)
 
-        self.boxPUto = ttk.Entry(self.frameNew, justify=RIGHT, textvariable=self.valPU, width=25)
+        self.boxPUto = ttk.Entry(self.frameNew, justify=RIGHT, textvariable=self.valPU, width=20)
         self.boxPUto.grid(row=2, column=3, pady=_pady)
         self.boxPUto.grid_propagate(0)
 
         #Creamos el botón Aceptar
         self.buttonAcep = ttk.Button(self.frameNew, text='Accept', command=lambda: self.insertBD())
-        self.buttonAcep.grid(row=0, column=4, padx=80)
+        self.buttonAcep.grid(row=0, column=4, padx=_padx)
         self.buttonAcep.grid_propagate(0)
 
         #Creamos el botón Convertir
         self.buttonConvert = ttk.Button(self.frameNew, text='Convert', command=lambda: self.conversion())
-        self.buttonConvert.grid(row=1, column=4, padx=80)
+        self.buttonConvert.grid(row=1, column=4, padx=_padx)
         self.buttonConvert.grid_propagate(0)
 
         #Creamos el botón Cancelar
         self.buttonCanc = ttk.Button(self.frameNew, text='Cancel', command=lambda: self.resetValues())
-        self.buttonCanc.grid(row=2, column=4, padx=80)
+        self.buttonCanc.grid(row=2, column=4, padx=_padx)
         self.buttonCanc.grid_propagate(0)
     
     def cryptoName(self, values):
@@ -244,14 +245,14 @@ class Transaction(ttk.Frame):
     def conversion(self):
         #Obtenemos la lista de movimientos de la BD
         self.records = queriesDB.getRecordsDB()
+        '''
         #Obtenemos la lista de criptomonedas en la columna TO
         self.listCryptoTo, self.listCrypNameTo = queriesDB.toCrypto()
         #Añadimos el Euro porque siempre puede elegirse en el FROM
         self.listCrypNameTo.append('Euro')
-        print(self.listCrypNameTo)
         #Calculamos la cantidad total (invertido - retornado) de cada criptomoneda
         self.totalCryptoTO = self.totalCrypto(self.listCryptoTo)
-        print(self.totalCryptoTO)
+        '''
         validateCrypto = self.validateCombos()
         if validateCrypto:
             validateQFrom = self.validateQFrom()
@@ -273,9 +274,16 @@ class Transaction(ttk.Frame):
             messagebox.showwarning(message="From Combo value must be Euro.", title="Warning")
             return False
         #Si ya tenemos registros, FROM puede ser en Euros o en las criptomonedas que tengamos en TO
-        elif self.records != None and self.valCrypFrom.get() not in self.listCrypNameTo:
-            messagebox.showwarning(message="From Combo value must be Euro or a Crypto in column TO.", title="Warning")
-            return False
+        elif self.records != None:
+            #Obtenemos la lista de criptomonedas en la columna TO
+            self.listCryptoTo, self.listCrypNameTo = queriesDB.toCrypto()
+            #Añadimos el Euro porque siempre puede elegirse en el FROM
+            self.listCrypNameTo.append('Euro')
+            #Calculamos la cantidad total (invertido - retornado) de cada criptomoneda
+            self.totalCryptoTO = self.totalCrypto(self.listCryptoTo)
+            if self.valCrypFrom.get() not in self.listCrypNameTo:
+                messagebox.showwarning(message="From Combo value must be Euro or a Crypto in column TO.", title="Warning")
+                return False
         if self.valCrypTo.get() == '':
             messagebox.showwarning(message="Select a To Combo value.", title="Warning")
             return False
@@ -294,21 +302,30 @@ class Transaction(ttk.Frame):
         #Eliminamos los espacios por la derecha y lo volvemos a pintar en el Entry
         self.valQFrDB = self.valQFrom.get().rstrip()
         self.valQFrom.set(self.valQFrDB)
-        for item in self.totalCryptoTO:
-            if item[0] == self.symbolFrom:
-                maxValue = item[1]
-                print(maxValue)
+        if self.records != None:
+            for item in self.totalCryptoTO:
+                if item[0] == self.symbolFrom:
+                    maxValue = item[1]
         try:
-            if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= maxValue:
-                return True
-            elif float(self.valQFrDB) > maxValue:
-                messagebox.showwarning(message=
-                """Q Entry value must be a number less than {}.""".format(utilities.isFloat(maxValue, 5)), title="Warning")
-                return False
+            if self.symbolFrom != 'EUR':
+                if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= maxValue:
+                    return True
+                elif float(self.valQFrDB) > maxValue:
+                    messagebox.showwarning(message=
+                    """Q Entry value must be a number less than {}.""".format(utilities.isFloat(maxValue, 5)), title="Warning")
+                    return False
+                else:
+                    messagebox.showwarning(message=
+                    """Q Entry value must be a number greater than zero.""", title="Warning")
+                    return False
             else:
-                messagebox.showwarning(message=
-                """Q Entry value must be a number greater than zero.""", title="Warning")
-                return False
+                if float(self.valQFrDB) and float(self.valQFrDB) > 0:
+                    return True
+                else:
+                    messagebox.showwarning(message=
+                    """Q Entry value must be a number greater than zero.""", title="Warning")
+                    return False
+
         except:
             messagebox.showwarning(message=
             """Q Entry value must be a number.""", title="Warning")
@@ -388,26 +405,26 @@ class Status(ttk.Frame):
         self.currentValue = StringVar()
 
         #Creamos la etiqueta € Invertidos con su caja de texto
-        self.lblInversion = ttk.Label(self, text='Invested €:', font=_textTitle, width=12, anchor=E)
+        self.lblInversion = ttk.Label(self, text='Investment:', font=_textTitle, width=12, anchor=E)
         self.lblInversion.grid(row=0, column=0, padx=15, pady=_pady)
         self.lblInversion.grid_propagate(0)
 
-        self.boxInversion = ttk.Entry(self, justify=RIGHT, width=25, textvariable=self.investedEuros, state='readonly')
+        self.boxInversion = ttk.Entry(self, justify=RIGHT, width=20, textvariable=self.investedEuros, state='readonly', background='white')
         self.boxInversion.grid(row=0, column=1)
         self.boxInversion.grid_propagate(0)
 
         #Creamos la etiqueta Valor Actual con su caja de texto
-        self.lblActValue = ttk.Label(self, text='Current value:', font=_textTitle, width=15, anchor=E)
+        self.lblActValue = ttk.Label(self, text='Current value Crypto:', font=_textTitle, width=18, anchor=E)
         self.lblActValue.grid(row=0, column=2, padx=15)
         self.lblActValue.grid_propagate(0)
 
-        self.boxValue = ttk.Entry(self, justify=RIGHT, width=25, textvariable=self.currentValue, state='readonly')
+        self.boxValue = ttk.Entry(self, justify=RIGHT, width=20, textvariable=self.currentValue, state='readonly')
         self.boxValue.grid(row=0, column=3)
         self.boxValue.grid_propagate(0)
 
         #Creamos el botón Calcular
         self.buttonCalc = ttk.Button(self, text='Calculate', command=lambda: self.investState())
-        self.buttonCalc.grid(row=0, column=4, padx=80)
+        self.buttonCalc.grid(row=0, column=4, padx=_padx)
         self.buttonCalc.grid_propagate(0)
 
     #Calculamos el estado de la inversión
@@ -420,8 +437,8 @@ class Status(ttk.Frame):
 
         #Si no tenemos movimientos seteamos a cero los Entry
         if moves == None:
-            self.investedEuros.set('0')
-            self.currentValue.set('0')
+            self.investedEuros.set('0€')
+            self.currentValue.set('0€')
         
         else:
             #Inicializamos el sumatorio en euros de las criptomonedas
@@ -467,12 +484,23 @@ class Status(ttk.Frame):
                     #Si la cantidad de criptomonedas es mayor que cero las convertimos y las sumamos al total
                     if totalCrypto > 0:
                         #Invocamos al API para realizar la conversión indicando los valores necesarios
-                        totalCrypEuros += api.priceConv(totalCrypto, symbol, 'EUR')
+                        subTotal = api.priceConv(totalCrypto, symbol, 'EUR')
+                        #Si tenemos un error API rompemos la secuencia
+                        if subTotal != False:
+                            totalCrypEuros += subTotal
+                        else:
+                            break
+
                     #Si la cantidad de criptomonedas es menor que cero la convertimos y restamos del total
                     elif totalCrypto < 0:
                         totalCrypto *= -1
                         #Invocamos al API para realizar la conversión indicando los valores necesarios
-                        totalCrypEuros -= api.priceConv(totalCrypto, symbol, 'EUR')
+                        subTotal = api.priceConv(totalCrypto, symbol, 'EUR')
+                        #Si tenemos un error API rompemos la secuencia
+                        if subTotal != False:
+                            totalCrypEuros -= subTotal
+                        else:
+                            break
 
                 #Si el símbolo es el euro no necesitamos invocar al API para realizar la conversión
                 else:        
@@ -506,12 +534,15 @@ class Status(ttk.Frame):
                     totalEuro = utilities.isFloat(totalEuro, 2)
 
                     #Seteamos la variable de control para mostrar el valor en el Entry Inversión
-                    self.investedEuros.set(totalEuro)
-                
-            #Redondeamos y cambiamos el '.' por la ','
-            totalCrypEuros = utilities.isFloat(totalCrypEuros, 2)
-            #Seteamos la variable de control para mostrar el valor en el Entry Valor Actual
-            self.currentValue.set(totalCrypEuros)
+                    invEur = str(totalEuro) + '€'
+                    self.investedEuros.set(invEur)
+            
+            if subTotal != False:
+                #Redondeamos y cambiamos el '.' por la ','
+                totalCrypEuros = utilities.isFloat(totalCrypEuros, 2)
+                #Seteamos la variable de control para mostrar el valor en el Entry Valor Actual
+                curVal = str(totalCrypEuros) + '€'
+                self.currentValue.set(curVal)
 
 
 #Clase Frame Simulador Inversión Criptomonedas
@@ -554,7 +585,8 @@ class Investments(ttk.Frame):
         4. Both values must be different
         5. Enter a number greater than zero in Q Entry
         6. Click on Convert button to fix the data
-        7. Click on Accept button to record to the DB""", title="Instructions")
+        7. Click on Accept button to record to the DB
+        8. Click on Calculate to get the balance""", title="Instructions")
 
     #Cargamos los movimientos en el frame e inicializamos el área Nueva Transacción
     def updateMove(self):
