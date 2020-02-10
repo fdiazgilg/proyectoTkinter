@@ -16,11 +16,17 @@ class mainApp(Tk):
         self.posx = int((self.ws/2) - (_WIDTHFRAME/2))
         self.posy = int((self.hs/2) - (_HEIGHTFRAME/2))
 
+        #Posicionamos la pantalla y evitamos que se pueda cambiar de tamaño
         self.geometry("{}x{}+{}+{}".format(_WIDTHFRAME, _HEIGHTFRAME, self.posx, self.posy))
         self.resizable(0, 0)
 
+        #Instanciamos el Simulador de Inversiones
         self.simul = Investments(self)
         self.simul.place(x=0, y=0)
+
+        #Lanzamos la ventana de instrucciones de la simulación
+        self.simul.instructions()
+
 
     def start(self):
         self.mainloop()
