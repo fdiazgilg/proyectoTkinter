@@ -45,10 +45,12 @@ def getRecordsDB():
     SELECT * FROM movements;
     """
     movesDB = dbQuery(query)
+    if isinstance(movesDB, dict):
+        movesDB = [movesDB]
 
     return movesDB
 
-#Obtenemos los registros de la tabla MONEDAS
+#Obtenemos el número de registros de la tabla MONEDAS
 def cryptos():
     query = """
     SELECT * FROM cryptos;
@@ -65,6 +67,19 @@ def symbols():
     cryptos = dbQuery(query)
 
     return cryptos
+
+#Obtenemos la lista ordenada de los nombres de la tabla MONEDAS
+def names():
+    query = """
+    SELECT name FROM cryptos;
+    """
+    names = dbQuery(query)
+    listNames = []
+    for item in names:
+        listNames.append(item.get('name'))
+    listNames.sort()
+
+    return listNames
 
 #Obtenemos el símbolo a partir del nombre de la criptomoneda
 def symbolCryp(name):
@@ -120,6 +135,9 @@ def investedCrypto(symbol):
     movements b ON a.id = b.from_currency WHERE a.symbol = ?;
     """
     invCrypto = dbQuery(query, symbol)
+    if isinstance(invCrypto, dict):
+        invCrypto = [invCrypto]
+
 
     return invCrypto
 
@@ -130,6 +148,8 @@ def returnedCrypto(symbol):
     movements b ON a.id = b.to_currency WHERE a.symbol = ?;
     """
     retCrypto = dbQuery(query, symbol)
+    if isinstance(retCrypto, dict):
+        retCrypto = [retCrypto]
 
     return retCrypto
 
