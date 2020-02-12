@@ -1,12 +1,14 @@
 from tkinter import *
 from tkinter import ttk, messagebox
 import utilities
-import api
+import apiCoin
 import queriesDB
 
 #Constantes
 _WIDTHFRAME = 900
+_widthframe = 240
 _HEIGHTFRAME = 610
+_heightframe = 235
 _pady = 15
 _padx = 80
 _textTitle = 'Verdana 8 bold'
@@ -27,7 +29,7 @@ class Movements(ttk.Frame):
         self.loadHeaders()
 
         #Añadimos el container para el canvas y el scroll
-        self.container = ttk.Frame(self, borderwidth=0, width=810, height=220, relief='groove')
+        self.container = ttk.Frame(self, borderwidth=2, width=810, height=220, relief='ridge')
         self.container.grid(column=0, row=1, columnspan=8)
         
         #Añadimos el scrollbar
@@ -61,7 +63,7 @@ class Movements(ttk.Frame):
     #Cargamos las cabeceras de la tabla de movimientos
     def loadHeaders(self):
         for i in range (0, 7):
-            self.lblHead = ttk.Label(self, text=self.headers[i], font=_textTitle, width=14, relief='groove', anchor=CENTER)
+            self.lblHead = ttk.Label(self, text=self.headers[i], font=_textTitle, width=14, relief='ridge', anchor=CENTER)
             self.lblHead.grid(row=0, column=i)
             self.lblHead.grid_propagate(0)
         #Añadimos otro "hueco" para cuadrar con el scroll
@@ -251,7 +253,7 @@ class Transaction(ttk.Frame):
             #Invocamos a la función de validación de los valores de Q_FROM
             validateQFrom = self.validateQFrom()
             if validateQFrom:
-                self.convRate = api.priceConv(self.valQFrDB, self.symbolFrom, self.symbolTo)
+                self.convRate = apiCoin.priceConv(self.valQFrDB, self.symbolFrom, self.symbolTo)
                 #Si tenemos precio de conversión continuamos con la transacción
                 if self.convRate:
                     self.calcQTO(self.convRate)
@@ -398,6 +400,11 @@ class Status(ttk.Frame):
         self.buttonCalc.grid(row=0, column=4, padx=_padx)
         self.buttonCalc.grid_propagate(0)
 
+        #Creamos el botón Balance
+        self.buttonBal = ttk.Button(self, text='Balance', command=lambda: self.balance(), state=DISABLED)
+        self.buttonBal.grid(row=1, column=4, padx=_padx)
+        self.buttonBal.grid_propagate(0)
+
 
     #Calculamos el estado de la inversión
     def investState(self):
@@ -415,6 +422,8 @@ class Status(ttk.Frame):
         else:
             #Inicializamos el sumatorio en euros de las criptomonedas
             totalCrypEuros = 0
+            #Inicializamos la lista para el Balance
+            self.totalBalance = []
             #Recorremos la lista de criptomonedas
             for item in cryptos:
                 symbol = item['symbol']
@@ -431,10 +440,14 @@ class Status(ttk.Frame):
                     #Calculamos la diferencia entre las criptomonedas invertidas y las retornadas
                     totalCrypto = returnedCrypto - investedCrypto
 
+                    #Creamos una lista de tuplas para mostrar en Balance
+                    cryptoBalance = (symbol, totalCrypto)
+                    self.totalBalance.append(cryptoBalance)
+
                     #Si la cantidad de criptomonedas es distinta de cero las convertimos y las sumamos al total
                     if totalCrypto != 0:
                         #Invocamos al API para realizar la conversión indicando los valores necesarios
-                        subTotal = api.priceConv(totalCrypto, symbol, 'EUR')
+                        subTotal = apiCoin.priceConv(totalCrypto, symbol, 'EUR')
                         #Si tenemos un error API rompemos la secuencia
                         if subTotal != False:
                             totalCrypEuros += subTotal
@@ -475,6 +488,65 @@ class Status(ttk.Frame):
                     curVal = str(totalCrypEuros) + '€'
                 #Seteamos la variable de control para mostrar el valor en el Entry Valor Actual
                 self.currentValue.set(curVal)
+        
+        #Mensaje para indicar que los cálculos han finalizado
+        messagebox.showinfo(message="Successfully", title="Info")
+        
+        #Activamos el botón Balance
+        self.buttonBal.configure(state=NORMAL)
+
+        return self.totalBalance
+
+
+    #Ventana para mostrar el balance de criptomonedas
+    def balance(self):
+        self.cryptoBal = Toplevel()
+        self.cryptoBal.title('Balance Investments')
+
+        #Calculamos ancho y alto de nuestra pantalla
+        self.ws = self.winfo_screenwidth()
+        self.hs = self.winfo_screenheight()
+
+        #Fijamos las coordinadas x e y para centrar la ventana
+        self.cryptoBal.posx = int((self.ws/2) - (_widthframe/2))
+        self.cryptoBal.posy = int((self.hs/2) - (_heightframe/2))
+
+        #Posicionamos la pantalla y evitamos que se pueda cambiar de tamaño
+        self.cryptoBal.geometry("{}x{}+{}+{}".format(_widthframe, _heightframe, self.cryptoBal.posx, self.cryptoBal.posy))
+        self.cryptoBal.resizable(0, 0)
+
+        #Provocamos que la ventana hija transite con la padre
+        self.cryptoBal.transient(self.simul)
+
+        #Cabeceras de la tabla balance
+        self.balanceHeaders = ['Cryptocurrency', 'Quantity']
+
+        #Cargamos las cabeceras de la tabla de balance
+        for i in range(2):
+            self.lblHead = ttk.Label(self.cryptoBal, text=self.balanceHeaders[i], font=_textTitle, width=14, relief='ridge', anchor=CENTER)
+            self.lblHead.grid(row=0, column=i, padx=2, pady=3)
+            self.lblHead.grid_propagate(0)
+
+        #Obtenemos los datos del balance de la invocación anterior en calcular
+        dataBalance = self.totalBalance
+
+        #Inicializamos la lista de datos del balance
+        listBalance = []
+        
+        #Tratamos los datos del balance obtenido anteriormente para guardarlo en la lista
+        for item in dataBalance:
+            name = queriesDB.nameBalance(item[0])
+            quantity = utilities.isFloat(item[1], 5)
+            data = (name, quantity)
+            listBalance.append(data)
+        
+        #Mostramos los datos en la tabla de balance
+        for row in range(len(listBalance)):
+            for col in range(len(listBalance[row])):
+                value = listBalance[row][col]
+                self.lblValue = ttk.Label(self.cryptoBal, text=value, font=_textValue, width=16, relief='groove', anchor=CENTER)
+                self.lblValue.grid(row=row+1, column=col)
+                self.lblValue.grid_propagate(0)
 
 
 
@@ -537,7 +609,7 @@ class Investments(ttk.Frame):
         cryptos = queriesDB.cryptos()
         if cryptos == None:
             #Si la tabla MONEDAS está vacía obtenemos las criptomonedas de la API
-            cryptoApi = api.getCrypto()
+            cryptoApi = apiCoin.getCrypto()
             #Con los valores recibidos del API creamos una lista de tuplas
             cryptoValues = []
             for item in cryptoApi:
@@ -602,6 +674,4 @@ class Investments(ttk.Frame):
                 #Obtenemos una lista de tuplas con el símbolo y la cantidad de cada criptomoneda
                 totCrypto.append((symbol, returnedCrypto - investedCrypto))
         
-        print(totCrypto)
-
         return totCrypto

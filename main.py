@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import ttk
-from inversions import Investments, _HEIGHTFRAME, _WIDTHFRAME
+from investment import Investments, _HEIGHTFRAME, _WIDTHFRAME
 
 
 class mainApp(Tk):

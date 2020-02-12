@@ -111,6 +111,16 @@ def nameCrypto(id):
 
     return nameCrypto
 
+#Obtenemos el nombre de la criptomoneda a partir del símbolo
+def nameBalance(symbol):
+    query = """
+    SELECT name FROM cryptos WHERE symbol = ?;
+    """
+    crypto = dbQuery(query, symbol)
+    nameCrypto = crypto.get('name')
+
+    return nameCrypto
+
 #Realizamos el insert en la tabla de movimientos
 def insertDB(date, time, idFrom, qFrom, idTo, qTo):
     query = """
