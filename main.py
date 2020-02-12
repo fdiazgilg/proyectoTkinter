@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from investment import Investments, _HEIGHTFRAME, _WIDTHFRAME
 
 
@@ -26,6 +26,15 @@ class mainApp(Tk):
 
         #Lanzamos la ventana de instrucciones de la simulación
         self.simul.instructions()
+
+        #Controlamos el cierre de la ventana del simulador
+        self.protocol("WM_DELETE_WINDOW", self.closeApp)
+
+    
+    def closeApp(self):
+        answer = messagebox.askokcancel(message="Do you want to close the simulator?", title="Crypto Simulator")
+        if answer:
+            self.simul.quit()
 
 
     def start(self):

@@ -29,7 +29,7 @@ class Movements(ttk.Frame):
         self.loadHeaders()
 
         #Añadimos el container para el canvas y el scroll
-        self.container = ttk.Frame(self, borderwidth=2, width=810, height=220, relief='ridge')
+        self.container = ttk.Frame(self, borderwidth=2, width=810, height=220, relief='groove')
         self.container.grid(column=0, row=1, columnspan=8)
         
         #Añadimos el scrollbar
@@ -63,7 +63,7 @@ class Movements(ttk.Frame):
     #Cargamos las cabeceras de la tabla de movimientos
     def loadHeaders(self):
         for i in range (0, 7):
-            self.lblHead = ttk.Label(self, text=self.headers[i], font=_textTitle, width=14, relief='ridge', anchor=CENTER)
+            self.lblHead = ttk.Label(self, text=self.headers[i], font=_textTitle, width=14, relief='sunken', anchor=CENTER)
             self.lblHead.grid(row=0, column=i)
             self.lblHead.grid_propagate(0)
         #Añadimos otro "hueco" para cuadrar con el scroll
@@ -418,6 +418,7 @@ class Status(ttk.Frame):
         if moves == None:
             self.investedEuros.set('0€')
             self.currentValue.set('0€')
+            self.totalBalance = None
         
         else:
             #Inicializamos el sumatorio en euros de las criptomonedas
@@ -436,6 +437,7 @@ class Status(ttk.Frame):
 
                     #Cálculo de criptomonedas retornadas
                     returnedCrypto = self.simul.cryptoReturn(symbol)
+                    print(returnedCrypto)
 
                     #Calculamos la diferencia entre las criptomonedas invertidas y las retornadas
                     totalCrypto = returnedCrypto - investedCrypto
@@ -490,7 +492,7 @@ class Status(ttk.Frame):
                 self.currentValue.set(curVal)
         
         #Mensaje para indicar que los cálculos han finalizado
-        messagebox.showinfo(message="Successfully", title="Info")
+        messagebox.showinfo(message="Calculated successfully", title="Info")
         
         #Activamos el botón Balance
         self.buttonBal.configure(state=NORMAL)
@@ -500,8 +502,14 @@ class Status(ttk.Frame):
 
     #Ventana para mostrar el balance de criptomonedas
     def balance(self):
+        #Al mostrar la ventana de balance desactivamos los botones Calcular y Balance
+        self.buttonCalc.configure(state=DISABLED)
+        self.buttonBal.configure(state=DISABLED)
         self.cryptoBal = Toplevel()
         self.cryptoBal.title('Balance Investments')
+
+        #Controlamos el cierre de la ventana de balance
+        self.cryptoBal.protocol("WM_DELETE_WINDOW", self.closeBalance)
 
         #Calculamos ancho y alto de nuestra pantalla
         self.ws = self.winfo_screenwidth()
@@ -533,12 +541,23 @@ class Status(ttk.Frame):
         #Inicializamos la lista de datos del balance
         listBalance = []
         
-        #Tratamos los datos del balance obtenido anteriormente para guardarlo en la lista
-        for item in dataBalance:
-            name = queriesDB.nameBalance(item[0])
-            quantity = utilities.isFloat(item[1], 5)
-            data = (name, quantity)
-            listBalance.append(data)
+        #Si no tenemos movimientos en la BD tenemos que cargar la tabla con valores 0
+        if dataBalance == None:
+            listNames = queriesDB.names()
+            listNames.remove('Euro')
+            for item in listNames:
+                name = item
+                quantity = 0
+                data = (name, quantity)
+                listBalance.append(data)
+        
+        else:
+            #Si tenemos movimientos en la BD, tratamos los datos del balance obtenido anteriormente para guardarlo en la lista
+            for item in dataBalance:
+                name = queriesDB.nameBalance(item[0])
+                quantity = utilities.isFloat(item[1], 5)
+                data = (name, quantity)
+                listBalance.append(data)
         
         #Mostramos los datos en la tabla de balance
         for row in range(len(listBalance)):
@@ -547,6 +566,15 @@ class Status(ttk.Frame):
                 self.lblValue = ttk.Label(self.cryptoBal, text=value, font=_textValue, width=16, relief='groove', anchor=CENTER)
                 self.lblValue.grid(row=row+1, column=col)
                 self.lblValue.grid_propagate(0)
+
+
+    #Función para controlar el cierre de la ventana de balance
+    def closeBalance(self):
+        answer = messagebox.askokcancel(message="Do you want to close the balance?", title="Balance Cryptocurrencies")
+        if answer:
+            self.cryptoBal.destroy()
+            #Al cerrar la ventana balance activamos de nuevo el botón Calcular
+            self.buttonCalc.configure(state=NORMAL)
 
 
 
@@ -584,14 +612,15 @@ class Investments(ttk.Frame):
     def instructions(self):
         messagebox.showinfo(message=
         """Steps to simulate a cryptocurrency investment:
-        1. Click on '+' button
-        2. Select a From Combo value
-        3. Select a To Combo value
-        4. Both values must be different
-        5. Enter a number greater than zero in Q Entry
-        6. Click on Convert button to fix the data
-        7. Click on Accept button to record to the DB
-        8. Click on Calculate to get the balance""", title="Instructions")
+    1. Click on '+' button
+    2. Select a From Combo value
+    3. Select a To Combo value
+    4. Both values must be different
+    5. Enter a number greater than zero in Q Entry
+    6. Click on Convert button to fix the data
+    7. Click on Accept button to record to the DB
+    8. Click on Calculate to get the balance
+    9. Click on Balance to know the amount of cryptocurrencies""", title="Instructions")
 
 
     #Cargamos los movimientos en el frame e inicializamos el área Nueva Transacción
