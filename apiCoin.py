@@ -17,6 +17,8 @@ URL_API_CONV = 'https://pro-api.coinmarketcap.com/v1/tools/price-conversion?amou
 #Función que obtiene las criptomonedas de la API
 def getCrypto():
     resp = requests.get(URL_API_LOAD.format(APIKEY))
+    js = resp.text
+    response = json.loads(js)
     try:
         resp.raise_for_status()
         js = resp.text
@@ -24,8 +26,11 @@ def getCrypto():
         values = response.get('data')
         return values
 
-    except requests.exceptions.RequestException as e:
-        messagebox.showerror(message="Error: {}".format(e), title="API Error")
+    except:
+        state = response['status']
+        code = state['error_code']
+        message = state['error_message']
+        messagebox.showerror(message="Code <{}> {}".format(code, message), title="API Error")
         sys.exit()
 
 
@@ -42,13 +47,9 @@ def priceConv(valueQ, cryptoFR, cryptoTO):
         rate = conver['price']
         return rate
 
-    except requests.exceptions.HTTPError as e:
-        #js = resp.text
-        #response = json.loads(js)
-        error = resp.status_code
+    except:
         state = response['status']
         code = state['error_code']
         message = state['error_message']
-        #messagebox.showerror(message="API Conversion HTTP Error: {}".format(e), title="API Error")
-        messagebox.showerror(message="API Conversion HTTP Error {}: Code <{}> {}".format(error, code, message), title="API Error")
+        messagebox.showerror(message="Code <{}> {}".format(code, message), title="API Error")
         return False

@@ -1,6 +1,5 @@
 import configparser
 import sqlite3
-import traceback, sys
 from tkinter import messagebox
 
 #Lectura del fichero de configuración config.py
@@ -22,47 +21,43 @@ def dbQuery(consulta, *args):
     conn.row_factory = dict_factory
     cursor = conn.cursor()
 
-    try:
-        rows = cursor.execute(consulta, args).fetchall()
-    except sqlite3.Error as e:
-        messagebox.showerror(message="DataBase Error: {}".format(e), title="SQLite Error")
-        #traceback.print_exc(file=sys.stdout)
-        #return None
-    
-    if len(rows) == 1:
-        rows = rows[0]
-    elif len(rows) == 0:
-        rows = None
+    rows = cursor.execute(consulta, args).fetchall()
     
     conn.commit()
     conn.close()
 
     return rows
 
+
 #Obtenemos los registros de la tabla MOVIMIENTOS
+#Esta query nos da la lista de registro de MOVIMIENTOS cargar la aplicación (lineas 76 - 698)
+#Las consultas en lineas 302 - 464 sólo son para verificar que existen movimientos
+#PODRIAMOS PRESCINDIR DE NAMECRYPTO LINEAS 96 - 103
+#SELECT b.date, b.time, a.name, b.from_quantity, c.name, b.to_quantity FROM cryptos a INNER JOIN (cryptos c INNER JOIN movements b ON c.id = b.to_currency) ON a.id = b.from_currency;
+'''
 def getRecordsDB():
     query = """
-    SELECT * FROM movements;
+    SELECT b.date, b.time, a.name, b.from_quantity, c.name, b.to_quantity FROM cryptos a INNER JOIN(cryptos c INNER JOIN movements b ON c.id = b.to_currency) ON a.id = b.from_currency ORDER BY b.id;
     """
     movesDB = dbQuery(query)
-    if isinstance(movesDB, dict):
-        movesDB = [movesDB]
+    print(movesDB)
+
+    return movesDB
+'''
+
+def getRecordsDB():
+    query = """
+    SELECT date, time, from_currency, from_quantity, to_currency, to_quantity FROM movements
+    ORDER BY id;
+    """
+    movesDB = dbQuery(query)
 
     return movesDB
 
 #Obtenemos el número de registros de la tabla MONEDAS
 def cryptos():
     query = """
-    SELECT * FROM cryptos;
-    """
-    cryptos = dbQuery(query)
-
-    return cryptos
-
-#Obtenemos los símbolos de la tabla MONEDAS
-def symbols():
-    query = """
-    SELECT symbol FROM cryptos;
+    SELECT count(id) FROM cryptos;
     """
     cryptos = dbQuery(query)
 
@@ -71,55 +66,48 @@ def symbols():
 #Obtenemos la lista ordenada de los nombres de la tabla MONEDAS
 def names():
     query = """
-    SELECT name FROM cryptos;
+    SELECT name FROM cryptos
+    ORDER BY name;
     """
     names = dbQuery(query)
-    listNames = []
-    for item in names:
-        listNames.append(item.get('name'))
-    listNames.sort()
 
-    return listNames
+    return names
 
 #Obtenemos el símbolo a partir del nombre de la criptomoneda
 def symbolCryp(name):
     query = """
     SELECT symbol FROM cryptos WHERE name = ?;
     """
-    crypto = dbQuery(query, name)
-    symbCrypto = crypto.get('symbol')
+    symbol = dbQuery(query, name)
 
-    return symbCrypto
+    return symbol
 
 #Obtenemos el id a partir del símbolo de la criptomoneda
 def idCrypto(name):
     query = """
     SELECT id FROM cryptos WHERE symbol = ?;
     """
-    crypto = dbQuery(query, name)
-    idCrypto = crypto.get('id')
+    ind = dbQuery(query, name)
 
-    return idCrypto
+    return ind
 
 #Obtenemos el nombre de la criptomoneda a partir del id
-def nameCrypto(id):
+def nameCrypto(ind):
     query = """
     SELECT name FROM cryptos WHERE id = ?;
     """
-    crypto = dbQuery(query, id)
-    nameCrypto = crypto.get('name')
+    name = dbQuery(query, ind)
 
-    return nameCrypto
+    return name
 
 #Obtenemos el nombre de la criptomoneda a partir del símbolo
 def nameBalance(symbol):
     query = """
     SELECT name FROM cryptos WHERE symbol = ?;
     """
-    crypto = dbQuery(query, symbol)
-    nameCrypto = crypto.get('name')
+    name = dbQuery(query, symbol)
 
-    return nameCrypto
+    return name
 
 #Realizamos el insert en la tabla de movimientos
 def insertDB(date, time, idFrom, qFrom, idTo, qTo):
@@ -128,6 +116,7 @@ def insertDB(date, time, idFrom, qFrom, idTo, qTo):
                 VALUES (?, ?, ?, ?, ?, ?);
     """
     dbQuery(query, date, time, idFrom, qFrom, idTo, qTo)
+
 
 #Realizamos el insert en la tabla de criptomonedas
 def insertCrypto(cryptos):
@@ -145,9 +134,6 @@ def investedCrypto(symbol):
     movements b ON a.id = b.from_currency WHERE a.symbol = ?;
     """
     invCrypto = dbQuery(query, symbol)
-    if isinstance(invCrypto, dict):
-        invCrypto = [invCrypto]
-
 
     return invCrypto
 
@@ -158,8 +144,6 @@ def returnedCrypto(symbol):
     movements b ON a.id = b.to_currency WHERE a.symbol = ?;
     """
     retCrypto = dbQuery(query, symbol)
-    if isinstance(retCrypto, dict):
-        retCrypto = [retCrypto]
 
     return retCrypto
 
@@ -170,12 +154,5 @@ def toCrypto():
     cryptos b ON a.to_currency = b.id;
     """
     retToCrypto = dbQuery(query)
-    listretToCrypto = []
-    listretToNameCryp = []
-    if isinstance(retToCrypto, dict):
-        retToCrypto = [retToCrypto]
-    for item in retToCrypto:
-        listretToCrypto.append(item.get('symbol'))
-        listretToNameCryp.append(item.get('name'))
 
-    return listretToCrypto, listretToNameCryp
+    return retToCrypto
