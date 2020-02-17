@@ -99,7 +99,7 @@ def insertCrypto(cryptos):
 #Obtenemos la cantidad FROM de una criptomoneda
 def investedCrypto(symbol):
     query = """
-    SELECT from_quantity FROM cryptos a INNER JOIN 
+    SELECT SUM(from_quantity) FROM cryptos a INNER JOIN 
     movements b ON a.id = b.from_currency WHERE a.symbol = ?;
     """
     invCrypto = dbQuery(query, symbol)
@@ -110,7 +110,7 @@ def investedCrypto(symbol):
 #Obtenemos la cantidad TO de una criptomoneda
 def returnedCrypto(symbol):
     query = """
-    SELECT to_quantity FROM cryptos a INNER JOIN 
+    SELECT SUM(to_quantity) FROM cryptos a INNER JOIN 
     movements b ON a.id = b.to_currency WHERE a.symbol = ?;
     """
     retCrypto = dbQuery(query, symbol)
