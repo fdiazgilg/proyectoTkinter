@@ -6,6 +6,7 @@ import queriesDB
 import sqlite3
 import sys
 
+
 #Constantes
 _WIDTHFRAME = 900
 _widthframe = 360
@@ -15,6 +16,7 @@ _pady = 15
 _padx = 80
 _textTitle = 'Verdana 8 bold'
 _textValue = 'Verdana 8'
+_invLimit = 1000000
 
 
 #Clase Marco Movimientos Criptomonedas
@@ -93,21 +95,19 @@ class Movements(ttk.Frame):
         data = []
         for i in range(records):
             data.append([])
-            date = moves[i]['date']
+            date = moves[i][0]
             data[i].append(date)
-            time = moves[i]['time']
+            time = moves[i][1]
             data[i].append(time)
-            idFrom = moves[i]['from_currency']
-            nameFrom = queriesDB.nameCrypto(idFrom)
-            data[i].append(nameFrom[0].get('name'))
-            QFrom = moves[i]['from_quantity']
+            nameFrom = moves[i][2]
+            data[i].append(nameFrom)
+            QFrom = moves[i][3]
             #Verificamos si es float o int
             normalizeQFrom = utilities.isFloat(QFrom, 5)
             data[i].append(normalizeQFrom)
-            idTo = moves[i]['to_currency']
-            nameTo = queriesDB.nameCrypto(idTo)
-            data[i].append(nameTo[0].get('name'))
-            QTo = moves[i]['to_quantity']
+            nameTo = moves[i][4]
+            data[i].append(nameTo)
+            QTo = moves[i][5]
             #Verificamos si es float o int
             normalizeQTo = utilities.isFloat(QTo, 5)
             data[i].append(normalizeQTo)
@@ -225,13 +225,14 @@ class Transaction(ttk.Frame):
         self.buttonCanc.grid(row=2, column=4, padx=_padx)
         self.buttonCanc.grid_propagate(0)
 
+
     #Refrescamos los valores del combo FROM
     def refreshCombo(self):
         #Obtenemos la lista de criptomonedas en la columna TO
         listCrypto = queriesDB.toCrypto()
         self.listCryptoTo = []
         for i in range(len(listCrypto)):
-            self.listCryptoTo.append(listCrypto[i].get('symbol'))
+            self.listCryptoTo.append(listCrypto[i][0])
         #Calculamos la cantidad total (invertido - retornado) de cada criptomoneda
         self.totalCryptoTO = self.totalCrypto(self.listCryptoTo)
         #Sólo mostramos las cryptos con cantidad distinta de 0
@@ -244,10 +245,10 @@ class Transaction(ttk.Frame):
         listFrom = []
         for item in dataBalance:
             nameCrypto = queriesDB.nameBalance(item[0])
-            name = nameCrypto[0].get('name')
+            name = nameCrypto[0][0]
             quantity = item[1]
-            #Sólo mostramos en el balance las criptomonedas con cantidad mayor de 0.00001
-            if quantity >= 0.00001:
+            #Sólo mostramos en el balance las criptomonedas con cantidad mayor que 0.00001
+            if quantity > 0.00001:
                 listFrom.append(name)
         #Añadimos el Euro si no está en la lista y ordenamos
         if 'Euro' not in listFrom:
@@ -279,7 +280,7 @@ class Transaction(ttk.Frame):
         namesTo = queriesDB.names()
         self.listComboTo = []
         for item in namesTo:
-            self.listComboTo.append(item.get('name'))
+            self.listComboTo.append(item[0])
         self.comboTo['values'] = self.listComboTo
         self.comboTo.bind('<<ComboboxSelected>>', self.selCombo)
     
@@ -311,7 +312,7 @@ class Transaction(ttk.Frame):
             #Invocamos a la función de validación de los valores de Q_FROM
             validateQFrom = self.validateQFrom()
             if validateQFrom:
-                self.convRate = apiCoin.priceConv(self.valQFrDB, self.symbolFrom, self.symbolTo)
+                self.convRate = apiCoin.priceConv(self.symbolFrom, self.symbolTo)
                 #Si tenemos precio de conversión continuamos con la transacción
                 if self.convRate:
                     self.calcQTO(self.convRate)
@@ -331,11 +332,13 @@ class Transaction(ttk.Frame):
             messagebox.showwarning(message="Selected values must be different.", title="Warning")
             return False
         
-        #Obtenemos los símbolos de las dos criptomonedas
-        symbolFrom = queriesDB.symbolCryp(self.valCrypFrom.get())
-        self.symbolFrom = symbolFrom[0].get('symbol')
-        symbolTo = queriesDB.symbolCryp(self.valCrypTo.get())
-        self.symbolTo = symbolTo[0].get('symbol')
+        #Obtenemos los símbolos y los ids de las dos criptomonedas
+        symbolIdFrom = queriesDB.symbolIdCryp(self.valCrypFrom.get())
+        self.symbolFrom = symbolIdFrom[0][0]
+        self.idFrom = symbolIdFrom[0][1]
+        symbolIdTo = queriesDB.symbolIdCryp(self.valCrypTo.get())
+        self.symbolTo = symbolIdTo[0][0]
+        self.idTo = symbolIdTo[0][1]
 
         return True
 
@@ -362,8 +365,12 @@ class Transaction(ttk.Frame):
                     """Q Entry value must be a number greater than zero.""", title="Warning")
                     return False
             else:
-                if float(self.valQFrDB) and float(self.valQFrDB) > 0:
+                if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= _invLimit:
                     return True
+                elif float(self.valQFrDB) > _invLimit:
+                    messagebox.showwarning(message=
+                    """Q Entry value must be a number less than {}€.""".format(utilities.isFloat(_invLimit, 5)), title="Warning")
+                    return False
                 else:
                     messagebox.showwarning(message=
                     """Q Entry value must be a number greater than zero.""", title="Warning")
@@ -375,19 +382,21 @@ class Transaction(ttk.Frame):
             return False
 
 
-    #Calculamos el valor de entry Q_TO
+    #Calculamos el valor de Entry Q_TO
     def calcQTO(self, rate):
-        #Redondeamos tasa conversión y mostramos en pantalla
-        roundRate = round(rate, 5)
+        #Convertimos en float el valor de Entry Q_FROM
+        self.valQFrDB = float(self.valQFrDB)
+        #Multiplicamos la tasa de conversión por la cantidad del Entry Q_FROM
+        self.valQToDB = rate * self.valQFrDB
+        #Redondeamos el resultado
+        roundRate = round(self.valQToDB, 5)
         self.valQTo.set(roundRate)
 
 
-    #Calculamos el valor de entry PU
+    #Calculamos el valor de Entry PU
     def calcPU(self, rate):
-        #Asignamos tasa conversión a Q_TO
-        self.valQtoDB = rate
         #Calculamos PU, lo redondeamos y mostramos en pantalla
-        valuePU = float(self.valQFrDB)/float(self.valQtoDB)
+        valuePU = self.valQFrDB/self.valQToDB
         valuePU = round(valuePU, 5)
         self.valPU.set(valuePU)
 
@@ -406,12 +415,7 @@ class Transaction(ttk.Frame):
     def addMoveDB(self):
         #Calculamos fecha y hora con el formato adecuado
         self.date, self.time = utilities.getFx()
-        #Obtenemos los id de las dos criptomonedas
-        idFrom = queriesDB.idCrypto(self.symbolFrom)
-        self.idFrom = idFrom[0].get('id')
-        idTo = queriesDB.idCrypto(self.symbolTo)
-        self.idTo = idTo[0].get('id')
-        queriesDB.insertDB(self.date, self.time, self.idFrom, self.valQFrDB, self.idTo, self.valQtoDB)
+        queriesDB.insertDB(self.date, self.time, self.idFrom, self.valQFrDB, self.idTo, self.valQToDB)
 
 
 
@@ -470,6 +474,8 @@ class Status(ttk.Frame):
     def investState(self):
         #Lista de movimientos de la tabla movimientos
         moves = queriesDB.getRecordsDB()
+        #Inicializamos el Entry de beneficios
+        self.profits.set('')
 
         #Si no tenemos movimientos seteamos a cero los Entry
         if len(moves) == 0:
@@ -482,15 +488,13 @@ class Status(ttk.Frame):
             
             #Activamos el botón Balance
             self.buttonBal.configure(state=NORMAL)
-
-            return self.totalBalance
-        
+       
         else:
             #Lista de símbolos de las criptomonedas en el TO
             cryptosTO = queriesDB.toCrypto()
             listCryptos = []
             for i in range(len(cryptosTO)):
-                listCryptos.append(cryptosTO[i].get('symbol'))
+                listCryptos.append(cryptosTO[i][0])
             #Eliminamos el Euro, si existe, porque no tenemos que invocar a la API
             if 'EUR' in listCryptos:
                 listCryptos.remove('EUR')
@@ -521,11 +525,12 @@ class Status(ttk.Frame):
                 #Si la cantidad de criptomonedas es distinta de cero las convertimos y las sumamos al total
                 if totalCrypto != 0:
                     #Invocamos al API para realizar la conversión indicando los valores necesarios
-                    subTotal = apiCoin.priceConv(totalCrypto, symbol, 'EUR')
+                    rate = apiCoin.priceConv(symbol, 'EUR')
+                    subTotal = rate * totalCrypto
                     totalCrypEuros += subTotal
 
             #Si no hay error API continuamos con los cálculos
-            if subTotal != False:
+            if rate != False:
                 #Cálculo de € invertidos
                 investedEuro = self.simul.cryptoInvert('EUR')
                 
@@ -552,21 +557,18 @@ class Status(ttk.Frame):
                 #Redondeamos y cambiamos el '.' por la ','
                 totalCrypEuros = utilities.isFloat(totalCrypEuros, 2)
                 #Si la cantidad en € de las criptomonedas, una vez redondeada, es cercana a 0, seteamos a cero el Entry
-                if str(totalCrypEuros) == '0,0':
+                if totalCrypEuros == '0,0':
                     curVal = '0€'
                 else:
                     curVal = str(totalCrypEuros) + '€'
                 #Seteamos la variable de control para mostrar el valor en el Entry Valor Actual
                 self.currentValue.set(curVal)
         
-        if subTotal != False:
-            #Mensaje para indicar que los cálculos han finalizado
-            messagebox.showinfo(message="Calculated successfully", title="Info")
-            
-            #Activamos el botón Balance
-            self.buttonBal.configure(state=NORMAL)
-
-            return self.totalBalance
+                #Mensaje para indicar que los cálculos han finalizado
+                messagebox.showinfo(message="Calculated successfully", title="Info")
+                
+                #Activamos el botón Balance
+                self.buttonBal.configure(state=NORMAL)
 
 
     #Ventana para mostrar el balance de criptomonedas
@@ -584,47 +586,51 @@ class Status(ttk.Frame):
             self.buttonCalc.configure(state=NORMAL)
 
         else:
-            #Si existen movimientos creamos una ventana para mostrar el balance
-            self.cryptoBal = Toplevel()
-            self.cryptoBal.title('Balance Investments')
-
-            #Controlamos el cierre de la ventana de balance
-            self.cryptoBal.protocol("WM_DELETE_WINDOW", self.closeBalance)
-
-            #Calculamos ancho y alto de nuestra pantalla
-            self.ws = self.winfo_screenwidth()
-            self.hs = self.winfo_screenheight()
-
-            #Fijamos las coordinadas x e y para centrar la ventana
-            self.cryptoBal.posx = int((self.ws/2) - (_widthframe/2))
-            self.cryptoBal.posy = int((self.hs/2) - (_heightframe/2))
-
-            #Posicionamos la pantalla y evitamos que se pueda cambiar de tamaño
-            self.cryptoBal.geometry("{}x{}+{}+{}".format(_widthframe, _heightframe, self.cryptoBal.posx, self.cryptoBal.posy))
-            self.cryptoBal.resizable(0, 0)
-
-            #Provocamos que la ventana hija transite con la padre
-            self.cryptoBal.transient(self.simul)
-
-            #Cabeceras de la tabla balance
-            self.balanceHeaders = ['Cryptocurrency', 'Quantity', 'Current Value']
-
-            #Cargamos las cabeceras de la tabla de balance
-            for i in range(len(self.balanceHeaders)):
-                self.lblHead = ttk.Label(self.cryptoBal, text=self.balanceHeaders[i], font=_textTitle, width=14, relief='ridge', anchor=CENTER)
-                self.lblHead.grid(row=0, column=i, pady=3)
-                self.lblHead.grid_propagate(0)
-
             #Tratamos los datos del balance obtenido anteriormente para guardarlo en la lista
             listBalance = self.loadBalance(dataBalance)
 
-            #Mostramos los datos en la tabla de balance
-            for row in range(len(listBalance)):
-                for col in range(len(listBalance[row])):
-                    value = listBalance[row][col]
-                    self.lblValue = ttk.Label(self.cryptoBal, text=value, font=_textValue, width=16, relief='groove', anchor=CENTER)
-                    self.lblValue.grid(row=row+1, column=col, padx=2)
-                    self.lblValue.grid_propagate(0)
+            if listBalance != []:
+                #Si existen movimientos creamos una ventana para mostrar el balance
+                self.cryptoBal = Toplevel()
+                self.cryptoBal.title('Balance Investments')
+
+                #Controlamos el cierre de la ventana de balance
+                self.cryptoBal.protocol("WM_DELETE_WINDOW", self.closeBalance)
+
+                #Calculamos ancho y alto de nuestra pantalla
+                self.ws = self.winfo_screenwidth()
+                self.hs = self.winfo_screenheight()
+
+                #Fijamos las coordinadas x e y para centrar la ventana
+                self.cryptoBal.posx = int((self.ws/2) - (_widthframe/2))
+                self.cryptoBal.posy = int((self.hs/2) - (_heightframe/2))
+
+                #Posicionamos la pantalla y evitamos que se pueda cambiar de tamaño
+                self.cryptoBal.geometry("{}x{}+{}+{}".format(_widthframe, _heightframe, self.cryptoBal.posx, self.cryptoBal.posy))
+                self.cryptoBal.resizable(0, 0)
+
+                #Provocamos que la ventana hija transite con la padre
+                self.cryptoBal.transient(self.simul)
+
+                #Cabeceras de la tabla balance
+                self.balanceHeaders = ['Cryptocurrency', 'Quantity', 'Current Value']
+
+                #Cargamos las cabeceras de la tabla de balance
+                for i in range(len(self.balanceHeaders)):
+                    self.lblHead = ttk.Label(self.cryptoBal, text=self.balanceHeaders[i], font=_textTitle, width=14, relief='ridge', anchor=CENTER)
+                    self.lblHead.grid(row=0, column=i, pady=3)
+                    self.lblHead.grid_propagate(0)
+
+                #Mostramos los datos en la tabla de balance
+                for row in range(len(listBalance)):
+                    for col in range(len(listBalance[row])):
+                        value = listBalance[row][col]
+                        self.lblValue = ttk.Label(self.cryptoBal, text=value, font=_textValue, width=16, relief='groove', anchor=CENTER)
+                        self.lblValue.grid(row=row+1, column=col, padx=2)
+                        self.lblValue.grid_propagate(0)
+            
+            else:
+                self.buttonCalc.configure(state=NORMAL)
 
 
     #Calculamos el formato a presentar en la ventana balance
@@ -632,17 +638,19 @@ class Status(ttk.Frame):
         listBalance = []
         for item in dataBalance:
             nameCrypto = queriesDB.nameBalance(item[0])
-            name = nameCrypto[0].get('name')
+            name = nameCrypto[0][0]
             quantity = item[1]
-            if quantity >= 0.00001:
-                quantityNorm = utilities.isFloat(item[1], 5)
+            if quantity > 0.00001:
+                quantityNorm = utilities.isFloat(quantity, 5)
                 symbol = item[0]
-                value = apiCoin.priceConv(quantity, symbol, 'EUR')
-                valueNorm = utilities.isFloat(value, 2)
-                valueNorm = str(valueNorm) + '€'
-                data = (name, quantityNorm, valueNorm)
-                listBalance.append(data)
-              
+                rate = apiCoin.priceConv(symbol, 'EUR')
+                if rate:
+                    value = rate * float(quantity)
+                    valueNorm = utilities.isFloat(value, 2)
+                    valueNorm = str(valueNorm) + '€'
+                    data = (name, quantityNorm, valueNorm)
+                    listBalance.append(data)
+
         return listBalance
 
 
@@ -718,7 +726,7 @@ class Investments(ttk.Frame):
     #Función que verifica si la tabla MONEDAS tiene información
     def checkCryptoTable(self):
         cryptos = queriesDB.cryptos()
-        regNum = cryptos[0].get('count(id)')
+        regNum = cryptos[0][0]
         if regNum == 0:
             #Si la tabla MONEDAS está vacía obtenemos las criptomonedas de la API
             cryptoApi = apiCoin.getCrypto()
@@ -754,7 +762,7 @@ class Investments(ttk.Frame):
         #Si no hay ningún registro continuamos
         if len(fromRowsCrypto) != 0:
             for row in fromRowsCrypto:
-                investedCrypto += row['from_quantity']
+                investedCrypto += row[0]
         
         return investedCrypto
 
@@ -767,6 +775,6 @@ class Investments(ttk.Frame):
         #Si no hay ningún registro continuamos
         if len(toRowsCrypto) != 0:
             for row in toRowsCrypto:
-                returnedCrypto += row['to_quantity']
+                returnedCrypto += row[0]
 
         return returnedCrypto
