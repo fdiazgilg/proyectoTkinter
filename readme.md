@@ -1,22 +1,24 @@
 # Instrucciones de instalación
+1. Clonamos el proyecto Tkinter
+```
+- git clone 'ruta', donde 'ruta' es la indicada en el formulario de entrega
+```
 
-1. Creación y activación del entorno virtual
+2. Creación y activación del entorno virtual
 
-2. Instalar las dependencias del fichero requirements.txt
+3. Instalar las dependencias del fichero requirements.txt
 ```
 pip install -r requirements.txt
 ```
 
-3. Creación de la base de datos
+4. Creación de la base de datos
 ```
-- Desde la ruta base creamos el directorio data
-- Nos situamos dentro del directorio data 
-- Nos situamos en el directorio ./data
+- Creamos el directorio data dentro de la 'ruta' del proyecto
 - Tecleamos sqlite3 'nombredelaBD'
-- Tecleamos read ../migrations/createtables.sql
+- Tecleamos .read ../migrations/createtables.sql
 ```
 
-4. Generación de la clave API
+5. Generación de la clave API
 ```
 - Generamos un APIKEY en la página de CoinMarket, https://coinmarketcap.com/api/
 ```
