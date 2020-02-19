@@ -478,7 +478,7 @@ class Status(ttk.Frame):
         self.boxValue.grid_propagate(0)
 
         #Creamos el botón Balance
-        self.buttonBal = ttk.Button(self, text='Balance', command=lambda: self.balance(), state=DISABLED)
+        self.buttonBal = ttk.Button(self, text='Balance', command=lambda: self.balance(), state=NORMAL)
         self.buttonBal.grid(row=1, column=4, padx=_padx)
         self.buttonBal.grid_propagate(0)
 
@@ -537,6 +537,10 @@ class Status(ttk.Frame):
                         rate = apiCoin.priceConv(symbol, 'EUR')
                         subTotal = rate * totalCrypto
                         totalCrypEuros += subTotal
+                        
+                        #Rompemos el bucle si una de las consultas a la API devuelve error
+                        if rate == False:
+                            break
 
                 #Si no hay error API continuamos con los cálculos
                 if rate != False:
@@ -660,6 +664,9 @@ class Status(ttk.Frame):
                     valueNorm = str(valueNorm) + '€'
                     data = (name, quantityNorm, valueNorm)
                     listBalance.append(data)
+                else:
+                    listBalance = []
+                    break
 
         return listBalance
 
