@@ -8,15 +8,18 @@ import sys
 
 
 #Constantes
+#Ventana principal
 _WIDTHFRAME = 900
 _widthframe = 360
+#Ventana balance
 _HEIGHTFRAME = 610
 _heightframe = 235
 _pady = 15
 _padx = 80
 _textTitle = 'Verdana 8 bold'
 _textValue = 'Verdana 8'
-_invLimit = 1000000
+#Límite máximo transacción €
+_transLimit = 1000000000000
 
 
 #Clase Marco Movimientos Criptomonedas
@@ -186,11 +189,11 @@ class Transaction(ttk.Frame):
         self.lblTo.grid(row=0, column=2, padx=15)
         self.lblTo.grid_propagate(0)
 
-        self.comboTo = ttk.Combobox(self.frameNew, justify=CENTER, textvariable=self.valCrypTo, width=17)
+        self.comboTo = ttk.Combobox(self.frameNew, justify=CENTER, textvariable=self.valCrypTo, width=17, postcommand=self.loadComboTo)
         self.comboTo.grid(row=0, column=3)
         self.comboTo.grid_propagate(0)
         
-        #Cargamos los valores del combo TO
+        #Cargamos los valores del combo TO de forma dinámica
         self.loadComboTo()
         self.comboTo.bind('<<ComboboxSelected>>', self.selCombo)
 
@@ -240,7 +243,7 @@ class Transaction(ttk.Frame):
                 self.listCryptoTo.append(listCrypto[i][0])
             #Calculamos la cantidad total (invertido - retornado) de cada criptomoneda
             self.totalCryptoTO = self.totalCrypto(self.listCryptoTo)
-            #Sólo mostramos las cryptos con cantidad distinta de 0
+            #Sólo mostramos las cryptos con cantidad mayor o igual que 0.00001
             self.listCombo = self.loadName(self.totalCryptoTO)
         except sqlite3.Error as e:
             messagebox.showerror(message="Error DB: {}".format(e), title="SQLite Error")
@@ -255,8 +258,8 @@ class Transaction(ttk.Frame):
             nameCrypto = queriesDB.nameBalance(item[0])
             name = nameCrypto[0][0]
             quantity = item[1]
-            #Sólo mostramos en el balance las criptomonedas con cantidad mayor que 0.00001
-            if quantity > 0.00001:
+            #Sólo mostramos en el balance las criptomonedas con cantidad mayor o igual que 0.00001
+            if quantity >= 0.00001:
                 listFrom.append(name)
         #Añadimos el Euro si no está en la lista y ordenamos
         if 'Euro' not in listFrom:
@@ -285,9 +288,19 @@ class Transaction(ttk.Frame):
         #Inicializamos la lista a mostrar en el combo
         self.listComboTo = []
         try:
-            namesTo = queriesDB.names()
-            for item in namesTo:
-                self.listComboTo.append(item[0])
+            #Obtenemos la lista de movimientos de la BD
+            self.records = queriesDB.getRecordsDB()
+            #Si no hay movimientos o 
+            #La cantidad de Bitcoin es menor que 0.00001 y sólo tenemos Bitcoin y Euros en el To,
+            #Sólo mostramos Bitcoin en el To
+            totalBTC = self.simul.sumCrypto('BTC')
+            listCrypto = queriesDB.toCrypto()
+            if len(self.records) == 0 or (listCrypto == [('BTC', 'Bitcoin'), ('EUR', 'Euro')] and totalBTC < 0.00001):
+                self.listComboTo = 'Bitcoin'
+            else:
+                namesTo = queriesDB.names()
+                for item in namesTo:
+                    self.listComboTo.append(item[0])
 
         except sqlite3.Error as e:
             messagebox.showerror(message="Error DB: {}".format(e), title="SQLite Error")
@@ -340,6 +353,12 @@ class Transaction(ttk.Frame):
         if self.valCrypFrom.get() == self.valCrypTo.get():
             messagebox.showwarning(message="Selected values must be different.", title="Warning")
             return False
+        if self.valCrypFrom.get() == 'Euro' and self.valCrypTo.get() != 'Bitcoin':
+            messagebox.showwarning(message="You can only convert Euro into Bitcoin.", title="Warning")
+            return False
+        if self.valCrypTo.get() == 'Euro' and self.valCrypFrom.get() not in ('Euro', 'Bitcoin'):
+            messagebox.showwarning(message="You can only convert into Euro from Bitcoin.", title="Warning")
+            return False
 
         return True
 
@@ -347,25 +366,25 @@ class Transaction(ttk.Frame):
     #Validamos que el valor del campo Q FROM sea numérico y mayor que cero
     def validateQFrom(self):
         #Eliminamos los espacios por la derecha y lo volvemos a pintar en el Entry
-        self.valQFrDB = self.valQFrom.get().rstrip()
+        self.valQFrDB = self.valQFrom.get().rstrip().replace('.', ',')
         self.valQFrom.set(self.valQFrDB)
+        #Permitimos los decimales con , en la entrada
+        self.valQFrDB = self.valQFrom.get().rstrip().replace(',', '.')
 
-        #Obtenemos los símbolos y los ids de las dos criptomonedas
-        symbolIdFrom = queriesDB.symbolIdCryp(self.valCrypFrom.get())
-        self.symbolFrom = symbolIdFrom[0][0]
-        self.idFrom = symbolIdFrom[0][1]
-        symbolIdTo = queriesDB.symbolIdCryp(self.valCrypTo.get())
-        self.symbolTo = symbolIdTo[0][0]
-        self.idTo = symbolIdTo[0][1]
-
-        #Obtenemos la lista de movimientos de la BD
-        self.records = queriesDB.getRecordsDB()
-
-        if len(self.records) != 0:
-            for item in self.totalCryptoTO:
-                if item[0] == self.symbolFrom:
-                    maxValue = item[1]
         try:
+            #Obtenemos los símbolos y los ids de las dos criptomonedas
+            symbolIdFrom = queriesDB.symbolIdCryp(self.valCrypFrom.get())
+            self.symbolFrom = symbolIdFrom[0][0]
+            self.idFrom = symbolIdFrom[0][1]
+            symbolIdTo = queriesDB.symbolIdCryp(self.valCrypTo.get())
+            self.symbolTo = symbolIdTo[0][0]
+            self.idTo = symbolIdTo[0][1]
+
+            if len(self.records) != 0:
+                for item in self.totalCryptoTO:
+                    if item[0] == self.symbolFrom:
+                        maxValue = item[1]
+
             if self.symbolFrom != 'EUR':
                 if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= maxValue:
                     return True
@@ -378,11 +397,11 @@ class Transaction(ttk.Frame):
                     """Q Entry value must be a number greater than zero.""", title="Warning")
                     return False
             else:
-                if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= _invLimit:
+                if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= _transLimit:
                     return True
-                elif float(self.valQFrDB) > _invLimit:
+                elif float(self.valQFrDB) > _transLimit:
                     messagebox.showwarning(message=
-                    """Q Entry value must be a number less than {}€.""".format(utilities.isFloat(_invLimit, 5)), title="Warning")
+                    """Q Entry value must be a number less than {}€.""".format(utilities.isFloat(_transLimit, 5)), title="Warning")
                     return False
                 else:
                     messagebox.showwarning(message=
@@ -401,17 +420,18 @@ class Transaction(ttk.Frame):
         self.valQFrDB = float(self.valQFrDB)
         #Multiplicamos la tasa de conversión por la cantidad del Entry Q_FROM
         self.valQToDB = rate * self.valQFrDB
-        #Redondeamos el resultado
-        roundRate = round(self.valQToDB, 5)
-        self.valQTo.set(roundRate)
+        #Formateamos el resultado
+        normQTo = utilities.isFloat(self.valQToDB, 5)
+        self.valQTo.set(normQTo)
 
 
     #Calculamos el valor de Entry PU
     def calcPU(self, rate):
         #Calculamos PU, lo redondeamos y mostramos en pantalla
         valuePU = self.valQFrDB/self.valQToDB
-        valuePU = round(valuePU, 5)
-        self.valPU.set(valuePU)
+        #Formateamos el resultado
+        normPU = utilities.isFloat(valuePU, 5)
+        self.valPU.set(normPU)
 
 
     #Acciones tras pulsar el botón Aceptar
@@ -478,7 +498,7 @@ class Status(ttk.Frame):
         self.boxValue.grid_propagate(0)
 
         #Creamos el botón Balance
-        self.buttonBal = ttk.Button(self, text='Balance', command=lambda: self.balance(), state=NORMAL)
+        self.buttonBal = ttk.Button(self, text='Balance', command=lambda: self.balance(), state=DISABLED)
         self.buttonBal.grid(row=1, column=4, padx=_padx)
         self.buttonBal.grid_propagate(0)
 
@@ -621,6 +641,7 @@ class Status(ttk.Frame):
                         self.lblValue.grid_propagate(0)
             
             else:
+                messagebox.showwarning(message="Your cryptocurrencies quantity are less than 0,00001.", title="Balance Investments")
                 self.buttonCalc.configure(state=NORMAL)
 
 
@@ -654,7 +675,7 @@ class Status(ttk.Frame):
         for item in dataBalance:
             name = item[0]
             quantity = item[2]
-            if quantity > 0.00001:
+            if quantity >= 0.00001:
                 quantityNorm = utilities.isFloat(quantity, 5)
                 symbol = item[1]
                 rate = apiCoin.priceConv(symbol, 'EUR')

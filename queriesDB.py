@@ -24,7 +24,7 @@ def dbQuery(consulta, *args):
     return rows
 
 
-#Obtenemos los registros de la tabla MOVIMIENTOS
+#Obtenemos los registros de la vista MOVIMIENTOS
 def getRecordsDB():
     query = """
     SELECT * from moves;

@@ -10,9 +10,15 @@ def isFloat(value, roundVal):
     if dec == 0:
         res = format(int(value), ',.0f')
     elif roundVal == 5:
-        res = format(value, ',.5f')
+        res = format(value, ',.5f').rstrip('0')
+        #Excepción para mostrar el valor correctamente
+        if res == '0.':
+            res = '0.00000'
     else:
-        res = format(value, ',.2f')
+        res = format(value, ',.2f').rstrip('0')
+        #Excepción para mostrar el valor correctamente
+        if res == '0.':
+            res = '0.00'
     
     res = res.replace(',', '@').replace('.', ',').replace('@', '.')
     
