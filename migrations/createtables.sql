@@ -23,4 +23,19 @@ CREATE TABLE "movements" (
 	FOREIGN KEY("from_currency") REFERENCES "cryptos"("id")
 );
 
+
+DROP VIEW IF EXISTS moves;
+
+CREATE VIEW moves AS SELECT 
+	b.date, 
+	b.time, 
+	a.name, 
+	b.from_quantity, 
+	c.name, 
+	b.to_quantity 
+	FROM cryptos a INNER JOIN(cryptos c INNER JOIN movements b ON c.id = b.to_currency) 
+	ON a.id = b.from_currency 
+	ORDER BY b.id;
+
+
 COMMIT;
