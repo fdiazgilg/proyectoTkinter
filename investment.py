@@ -18,8 +18,9 @@ _pady = 15
 _padx = 80
 _textTitle = 'Verdana 8 bold'
 _textValue = 'Verdana 8'
-#Límite máximo transacción €
-_transLimit = 1000000000000
+#Valor mínimo de conversión de la API
+_valueMinApi = 0.00000001
+
 
 
 #Clase Marco Movimientos Criptomonedas
@@ -107,17 +108,17 @@ class Movements(ttk.Frame):
             data[i].append(nameFrom)
             QFrom = moves[i][3]
             #Verificamos si es float o int
-            normalizeQFrom = utilities.isFloat(QFrom, 5)
+            normalizeQFrom = utilities.isFloat(QFrom, 8)
             data[i].append(normalizeQFrom)
             nameTo = moves[i][4]
             data[i].append(nameTo)
             QTo = moves[i][5]
             #Verificamos si es float o int
-            normalizeQTo = utilities.isFloat(QTo, 5)
+            normalizeQTo = utilities.isFloat(QTo, 8)
             data[i].append(normalizeQTo)
             PU = QFrom/QTo
             #Verificamos si es float o int
-            normalizePU = utilities.isFloat(PU, 5)
+            normalizePU = utilities.isFloat(PU, 8)
             data[i].append(normalizePU)
 
         return data
@@ -243,7 +244,7 @@ class Transaction(ttk.Frame):
                 self.listCryptoTo.append(listCrypto[i][0])
             #Calculamos la cantidad total (invertido - retornado) de cada criptomoneda
             self.totalCryptoTO = self.totalCrypto(self.listCryptoTo)
-            #Sólo mostramos las cryptos con cantidad mayor o igual que 0.00001
+            #Sólo mostramos las cryptos con cantidad mayor o igual que 0,00000001
             self.listCombo = self.loadName(self.totalCryptoTO)
         except sqlite3.Error as e:
             messagebox.showerror(message="Error DB: {}".format(e), title="SQLite Error")
@@ -258,8 +259,8 @@ class Transaction(ttk.Frame):
             nameCrypto = queriesDB.nameBalance(item[0])
             name = nameCrypto[0][0]
             quantity = item[1]
-            #Sólo mostramos en el balance las criptomonedas con cantidad mayor o igual que 0.00001
-            if quantity >= 0.00001:
+            #Sólo mostramos en el balance las criptomonedas con cantidad mayor o igual que 0,00000001
+            if quantity >= _valueMinApi:
                 listFrom.append(name)
         #Añadimos el Euro si no está en la lista y ordenamos
         if 'Euro' not in listFrom:
@@ -291,11 +292,11 @@ class Transaction(ttk.Frame):
             #Obtenemos la lista de movimientos de la BD
             self.records = queriesDB.getRecordsDB()
             #Si no hay movimientos o 
-            #La cantidad de Bitcoin es menor que 0.00001 y sólo tenemos Bitcoin y Euros en el To,
+            #La cantidad de Bitcoin es menor que 0,00000001 y sólo tenemos Bitcoin y Euros en el To,
             #Sólo mostramos Bitcoin en el To
             totalBTC = self.simul.sumCrypto('BTC')
             listCrypto = queriesDB.toCrypto()
-            if len(self.records) == 0 or (listCrypto == [('BTC', 'Bitcoin'), ('EUR', 'Euro')] and totalBTC < 0.00001):
+            if len(self.records) == 0 or (listCrypto == [('BTC', 'Bitcoin'), ('EUR', 'Euro')] and totalBTC < _valueMinApi):
                 self.listComboTo = 'Bitcoin'
             else:
                 namesTo = queriesDB.names()
@@ -334,8 +335,8 @@ class Transaction(ttk.Frame):
             #Invocamos a la función de validación de los valores de Q_FROM
             validateQFrom = self.validateQFrom()
             if validateQFrom:
-                self.convRate = apiCoin.priceConv(self.symbolFrom, self.symbolTo)
-                #Si tenemos precio de conversión continuamos con la transacción
+                self.convRate = apiCoin.priceConv(self.valQFrDB, self.symbolFrom, self.symbolTo)
+                #Si tenemos conversión continuamos con la transacción
                 if self.convRate:
                     self.calcQTO(self.convRate)
                     self.calcPU(self.convRate)
@@ -366,10 +367,14 @@ class Transaction(ttk.Frame):
     #Validamos que el valor del campo Q FROM sea numérico y mayor que cero
     def validateQFrom(self):
         #Eliminamos los espacios por la derecha y lo volvemos a pintar en el Entry
-        self.valQFrDB = self.valQFrom.get().rstrip().replace('.', ',')
+        self.valQFrDB = self.valQFrom.get().rstrip()
         self.valQFrom.set(self.valQFrDB)
-        #Permitimos los decimales con , en la entrada
-        self.valQFrDB = self.valQFrom.get().rstrip().replace(',', '.')
+        #Algoritmo para aceptar la ',' como decimal y no el '.'
+        try:
+            if isinstance(float(self.valQFrDB), float):
+                self.valQFrDB = self.valQFrDB.replace('.', ',')
+        except:
+            self.valQFrDB = self.valQFrDB.replace(',', '.')
 
         try:
             #Obtenemos los símbolos y los ids de las dos criptomonedas
@@ -390,19 +395,15 @@ class Transaction(ttk.Frame):
                     return True
                 elif float(self.valQFrDB) > maxValue:
                     messagebox.showwarning(message=
-                    """Q Entry value must be a number less than {}.""".format(utilities.isFloat(maxValue, 5)), title="Warning")
+                    """Q Entry value must be a number less than {}.""".format(utilities.isFloat(maxValue, 0)), title="Warning")
                     return False
                 else:
                     messagebox.showwarning(message=
                     """Q Entry value must be a number greater than zero.""", title="Warning")
                     return False
             else:
-                if float(self.valQFrDB) and float(self.valQFrDB) > 0 and float(self.valQFrDB) <= _transLimit:
+                if float(self.valQFrDB) and float(self.valQFrDB) > 0:
                     return True
-                elif float(self.valQFrDB) > _transLimit:
-                    messagebox.showwarning(message=
-                    """Q Entry value must be a number less than {}€.""".format(utilities.isFloat(_transLimit, 5)), title="Warning")
-                    return False
                 else:
                     messagebox.showwarning(message=
                     """Q Entry value must be a number greater than zero.""", title="Warning")
@@ -416,21 +417,19 @@ class Transaction(ttk.Frame):
 
     #Calculamos el valor de Entry Q_TO
     def calcQTO(self, rate):
-        #Convertimos en float el valor de Entry Q_FROM
-        self.valQFrDB = float(self.valQFrDB)
-        #Multiplicamos la tasa de conversión por la cantidad del Entry Q_FROM
-        self.valQToDB = rate * self.valQFrDB
         #Formateamos el resultado
-        normQTo = utilities.isFloat(self.valQToDB, 5)
+        normQTo = utilities.isFloat(rate, 8)
         self.valQTo.set(normQTo)
 
 
     #Calculamos el valor de Entry PU
     def calcPU(self, rate):
+        #Asignamos tasa conversión a Q_TO
+        self.valQToDB = rate
         #Calculamos PU, lo redondeamos y mostramos en pantalla
-        valuePU = self.valQFrDB/self.valQToDB
+        valuePU = float(self.valQFrDB)/float(self.valQToDB)
         #Formateamos el resultado
-        normPU = utilities.isFloat(valuePU, 5)
+        normPU = utilities.isFloat(valuePU, 8)
         self.valPU.set(normPU)
 
 
@@ -539,7 +538,6 @@ class Status(ttk.Frame):
                 self.totalBalance = []
                 #Recorremos la lista de criptomonedas en el TO
                 for symbol in listCryptos:
-
                     #Obtenemos el sumatorio total de cada criptomoneda
                     totalCrypto = self.simul.sumCrypto(symbol)
 
@@ -551,19 +549,21 @@ class Status(ttk.Frame):
                     cryptoBalance = (name, symbol, totalCrypto)
                     self.totalBalance.append(cryptoBalance)
 
-                    #Si la cantidad de criptomonedas es distinta de cero las convertimos y las sumamos al total
-                    if totalCrypto != 0:
+                    #Si la cantidad de criptomonedas es mayor o igual que 0,00000001 las convertimos y las sumamos al total
+                    #La cantidad debe ser mayor o igual que 0,00000001 para que no haya error API
+                    if totalCrypto >= _valueMinApi:
                         #Invocamos al API para realizar la conversión indicando los valores necesarios
-                        rate = apiCoin.priceConv(symbol, 'EUR')
-                        subTotal = rate * totalCrypto
+                        subTotal = apiCoin.priceConv(totalCrypto, symbol, 'EUR')
                         totalCrypEuros += subTotal
+                    else:
+                        subTotal = True
                         
                         #Rompemos el bucle si una de las consultas a la API devuelve error
-                        if rate == False:
+                        if subTotal == False:
                             break
 
                 #Si no hay error API continuamos con los cálculos
-                if rate != False:
+                if subTotal != False:
 
                     #Obtenemos el sumatorio total de cada criptomoneda
                     totalEuro = self.simul.sumCrypto('EUR')
@@ -641,7 +641,7 @@ class Status(ttk.Frame):
                         self.lblValue.grid_propagate(0)
             
             else:
-                messagebox.showwarning(message="Your cryptocurrencies quantity are less than 0,00001.", title="Balance Investments")
+                messagebox.showwarning(message="Your cryptocurrencies quantity are less than 0,00000001.", title="Balance Investments")
                 self.buttonCalc.configure(state=NORMAL)
 
 
@@ -675,12 +675,11 @@ class Status(ttk.Frame):
         for item in dataBalance:
             name = item[0]
             quantity = item[2]
-            if quantity >= 0.00001:
-                quantityNorm = utilities.isFloat(quantity, 5)
+            if quantity >= _valueMinApi:
+                quantityNorm = utilities.isFloat(quantity, 8)
                 symbol = item[1]
-                rate = apiCoin.priceConv(symbol, 'EUR')
-                if rate:
-                    value = rate * float(quantity)
+                value = apiCoin.priceConv(quantity, symbol, 'EUR')
+                if value:
                     valueNorm = utilities.isFloat(value, 2)
                     valueNorm = str(valueNorm) + '€'
                     data = (name, quantityNorm, valueNorm)

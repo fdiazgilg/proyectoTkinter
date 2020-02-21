@@ -14,8 +14,8 @@ pip install -r requirements.txt
 4. Creación de la base de datos
 ```
 - Creamos el directorio data dentro de la 'ruta' del proyecto
-- Tecleamos sqlite3 'nombredelaBD'
-- Tecleamos .read ../migrations/createtables.sql
+- Generamos el fichero de la BD en sqlite3 con sqlite3 ruta/data/'nombredelaBD'
+- Cargamos el modelo de BD .read ruta/migrations/createtables.sql
 ```
 
 5. Generación de la clave API

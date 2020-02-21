@@ -14,7 +14,7 @@ config.read('config.ini')
 #Variables clave
 APIKEY = config.get('PRODUCTION', 'SECRET_KEY')
 URL_API_LOAD = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?CMC_PRO_API_KEY={}&symbol=BTC,ETH,XRP,LTC,BCH,BNB,USDT,EOS,BSV,XLM,ADA,TRX'
-URL_API_CONV = 'https://pro-api.coinmarketcap.com/v1/tools/price-conversion?amount=1&symbol={}&convert={}&CMC_PRO_API_KEY={}'
+URL_API_CONV = 'https://pro-api.coinmarketcap.com/v1/tools/price-conversion?amount={}&symbol={}&convert={}&CMC_PRO_API_KEY={}'
 
 
 #Función que obtiene las criptomonedas de la API
@@ -37,8 +37,8 @@ def getCrypto():
 
 
 #Invocamos al API para realizar la conversión indicando los valores necesarios
-def priceConv(cryptoFR, cryptoTO):
-    resp = requests.get(URL_API_CONV.format(cryptoFR, cryptoTO, APIKEY))
+def priceConv(valueQ, cryptoFR, cryptoTO):
+    resp = requests.get(URL_API_CONV.format(valueQ, cryptoFR, cryptoTO, APIKEY))
     js = resp.text
     response = json.loads(js)
     try:
