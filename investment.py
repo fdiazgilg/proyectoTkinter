@@ -14,8 +14,10 @@ _widthframe = 360
 #Ventana balance
 _HEIGHTFRAME = 610
 _heightframe = 235
+#Separaciones
 _pady = 15
 _padx = 80
+#Fuentes
 _textTitle = 'Verdana 8 bold'
 _textValue = 'Verdana 8'
 #Valor mínimo de conversión de la API
@@ -335,6 +337,11 @@ class Transaction(ttk.Frame):
             #Invocamos a la función de validación de los valores de Q_FROM
             validateQFrom = self.validateQFrom()
             if validateQFrom:
+                #Normalizamos en pantalla el valor de Q_FROM
+                normQFrom = self.valQFrom.get().replace(',', '.')
+                normQFrom = utilities.isFloat(float(normQFrom), 8)
+                self.valQFrom.set(normQFrom)
+                #Invocamos al API para realizar la conversión
                 self.convRate = apiCoin.priceConv(self.valQFrDB, self.symbolFrom, self.symbolTo)
                 #Si tenemos conversión continuamos con la transacción
                 if self.convRate:
@@ -585,7 +592,7 @@ class Status(ttk.Frame):
                     #Redondeamos y cambiamos el '.' por la ','
                     totalCrypEuros = utilities.isFloat(totalCrypEuros, 2)
                     #Si la cantidad en € de las criptomonedas, una vez redondeada, es cercana a 0, seteamos a cero el Entry
-                    if totalCrypEuros == '0,0':
+                    if totalCrypEuros == '0,00':
                         curVal = '0€'
                     else:
                         curVal = str(totalCrypEuros) + '€'

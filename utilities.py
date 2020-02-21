@@ -20,7 +20,7 @@ def isFloat(value, roundVal):
         if len(res) > 12:
             res = locale.format('%.0f', value, grouping=True)
     elif roundVal == 2:
-        res = locale.format('%.2f', value, grouping=True).rstrip('0')
+        res = locale.format('%.2f', value, grouping=True)
     #Caso especial para mostrar el valor límite del Q_FROM
     else:
         res = locale.format('%.8f', value, grouping=True).rstrip('0')
