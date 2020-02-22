@@ -4,21 +4,19 @@
 - git clone 'ruta', donde 'ruta' es la indicada en el formulario de entrega
 ```
 
-2. Creación y activación del entorno virtual
-
-3. Instalar las dependencias del fichero requirements.txt
+2. Instalar las dependencias del fichero requirements.txt
 ```
 pip install -r requirements.txt
 ```
 
-4. Creación de la base de datos
+3. Creación de la base de datos
 ```
-- Creamos el directorio data dentro de la 'ruta' del proyecto
-- Generamos el fichero de la BD en sqlite3 con sqlite3 ruta/data/'nombredelaBD'
-- Cargamos el modelo de BD .read ruta/migrations/createtables.sql
+- Creamos el directorio data dentro de la 'ruta' del proyecto, 'ruta'/data
+- Generamos el fichero de la BD en sqlite3 con sqlite3 'ruta'/data/'nombredelaBD'
+- Cargamos el modelo de BD .read 'ruta'/migrations/createtables.sql
 ```
 
-5. Generación de la clave API
+4. Generación de la clave API
 ```
 - Generamos un APIKEY en la página de CoinMarket, https://coinmarketcap.com/api/
 ```

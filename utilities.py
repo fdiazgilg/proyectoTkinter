@@ -45,18 +45,10 @@ def getFx():
 #Gestión de errores de la API
 def apiErrors(error, response):
     message = response['status']['error_message']
-
-    if error == 400:
-        ret = "HTTP Error Code {}: Bad Request".format(error)
-    if error == 401:
-        ret = "HTTP Error Code {}: Unauthorized - {}".format(error, message)
-    if error == 402:
-        ret = "HTTP Error Code {}: Payment Required - {}".format(error, message)
-    if error == 403:
-        ret = "HTTP Error Code {}: Forbbiden - {}".format(error, message)
-    if error == 429:
-        ret = "HTTP Error Code {}: Too Many Requests - {}".format(error, message)
-    if error == 500:
-        ret = "HTTP Error Code {}: Internal Server Error".format(error)
+    dictApiErr = {400:'Bad Request', 401:'Unauthorized', 402:'Payment Required', 403:'Forbbiden', 429:'Too Many Requests', 500:'Internal Server Error'}
+    if error == 400 or error == 500:
+        ret = "HTTP Error Code {}: {}".format(error, dictApiErr.get(error))
+    else:
+        ret = "HTTP Error Code {}: {} - {}".format(error, dictApiErr.get(error), message)
     
     return ret
