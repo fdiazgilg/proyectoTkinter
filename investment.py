@@ -594,14 +594,14 @@ class Status(ttk.Frame):
             if item[2] >= _valueMinApi:
                 #Invocamos al API para realizar la conversión indicando los valores necesarios
                 subTotal = apiCoin.priceConv(item[2], item[1], 'EUR')
-                totalCrypEuros += subTotal
+                #Rompemos el bucle si una de las consultas a la API devuelve error
+                if subTotal:
+                    totalCrypEuros += subTotal
+                else:
+                    break
             else:
                 subTotal = True
-                
-                #Rompemos el bucle si una de las consultas a la API devuelve error
-                if subTotal == False:
-                    break
-        
+            
         return subTotal, totalCrypEuros
 
 
@@ -702,6 +702,8 @@ class Status(ttk.Frame):
                     listBalance.append(data)
                 else:
                     break
+            else:
+                value = True
 
         return listBalance, value
 
